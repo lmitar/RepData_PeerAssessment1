@@ -1,0 +1,146 @@
+---
+
+title: "PA1_template"
+output: html_document
+
+---
+
+
+# Loading Library
+
+```{r}
+echo = TRUE
+library(ggplot2)
+```
+
+# Loading and preprocessing the data
+```{r}
+fullData <- read.csv("activity_filled.csv")
+fullData$date <- as.Date(fullData$date, "%Y-%m-%d")
+```
+
+# A.What is mean total number if steps taken per day?
+
+```{r}
+stepsPerDay <- aggregate(steps ~ date, fullData, FUN = sum)
+```
+
+# 1.Make a histogram of the total number of steps taken each day
+
+```{r}
+g <- ggplot ( stepsPerDay, aes (x = steps))+ 
+        geom_histogram(fill ="yellow", binwidth = 1000)+ 
+        labs(title = " Histogram of Steps Taken Each Day ", x ="Steps", y = "Frequency")
+g
+```
+
+# 2.Calculate and report the mean and median of the total number of steps taken per day
+```{r}
+stepsMean <- mean(stepsPerDay$steps, na.rm=TRUE)
+## [1] 10766.19
+```
+
+```{r}
+stepsMedian <- median(stepsPerDay$steps, na.rm=TRUE)
+stepsMedian
+##[1] 10765
+
+```
+
+
+# B.What is the average daily activity pattern?
+
+# 1.Make a time series plot (i.e. type="l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r}
+stepsPerInterval <- aggregate(steps ~ interval, fullData, mean)
+h <- ggplot(stepsPerInterval, aes(x=interval, y=steps)) + 
+     geom_line() +
+     labs(title = "Time Series Plot of Average Steps per Interval", x = "Interval", y = "Average Steps across All Days")
+
+# If you want to display the plot, simply print or call the object
+h
+
+```
+
+
+# 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+maxInterval <- stepsPerInterval[which.max(stepsPerInterval$steps), ]
+maxInterval 
+## interval steps ## 104 835 206.1698
+
+```
+
+
+# C.Imputing missing value.
+
+# 1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{r}
+noMissingValue <- nrow(fullData[is.na(fullData$steps),])
+noMissingValue 
+## [1] 2304
+```
+
+
+# 2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+```{r}
+fullData1 <- read.csv("activity_filled.csv", header=TRUE,sep=",")
+fullData1$day <- weekdays(as.Date(fullData1$date)) 
+stepsAvg1 <-aggregate(steps ~ interval + day, fullData1, mean) 
+nadata <- fullData1 [is.na(fullData1$steps),] 
+newdata1 <- merge(nadata, stepsAvg1, by=c("interval", "day"))
+```
+
+
+# 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+cleanData <- fullData1 [!is.na(fullData1$steps),] 
+newdata2 <-newdata1[,c(5,4,1,2)] 
+colnames(newdata2) <- c("steps", "date","interval", "day") 
+mergeData <- rbind (cleanData, newdata2)
+```
+
+# 4.Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+```{r}
+
+stepsPerDayFill <- aggregate(steps ~ date, mergeData, FUN = sum) 
+
+g1<- ggplot (stepsPerDayFill, aes (x = steps)) 
+g1 + 
+geom_histogram(fill = "green", binwidth = 1000) + labs(title = " Histogram of Steps Taken Each Day ", x ="Steps", y = "Frequency")
+
+stepsMeanFill <- mean(stepsPerDayFill$steps, na.rm=TRUE) 
+stepsMeanFill
+```
+
+## [1] 10821.21
+```{r}
+stepsMedianFill <- median(stepsPerDayFill$steps, na.rm=TRUE)
+stepsMedianFill 
+
+```
+
+
+
+# D.Are there differences in activity patterns between weekdays and weekends?
+
+# 1.Create a new variable/column indicating weekday or weekend.
+```{r}
+mergeData$DayType <- ifelse(mergeData$day %in% c("Saturday", "Sunday"),
+"Weekend", "Weekday")
+```
+
+
+
+# 2.Make a panel plot containing a time series plot (i.e. type="l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+```{r}
+stepsPerIntervalDT <- aggregate(steps ~ interval+DayType, mergeData,
+FUN = mean) 
+j <- ggplot (stepsPerIntervalDT, aes(x=interval, y=steps))
+j + 
+geom_line()+ 
+labs(title = " Time Series Plot of Average Steps per
+Interval: weekdays vs. weekends", x = "Interval", y = "Average Number of Steps") + facet_grid(DayType ~ .)
+```
+
+
